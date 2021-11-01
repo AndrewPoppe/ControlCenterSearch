@@ -20,7 +20,6 @@ Type the phrase you'd like to search for, and the module filters the links in th
 
 *Note: Any spaces in the search term are replaced with wildcards to make the search a little more flexible (E.g., "The greatest" will find "**The** cake is my **greatest** joy")*
 
-Every REDCap session, the module scrapes the control center. While it scrapes, the search is disabled. This should only take a few seconds. Searching will be immediately available on subsequent visits to the control center within the same session.
 
 ## Help
 

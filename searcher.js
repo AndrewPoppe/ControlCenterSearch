@@ -37,10 +37,15 @@ function getNodesThatContain(searchText, domNode) {
  *          text: the html as a string
  *      }
  */
-function getText() {
+function getText(domNode = null) {
     const origin = new URL(window.location).origin;
-    const links = Array.from($('div.cc_menu_item a'))
-        .filter(a => {
+    let aArr;
+    if (domNode) {
+        aArr = Array.from($(domNode).find('div.cc_menu_item a'));
+    } else {
+        aArr = Array.from($('div.cc_menu_item a'))
+    }
+    const links = aArr.filter(a => {
             return a.href.startsWith(origin) && 
                 a.textContent !== "REDCap Home Page" &&
                 a.textContent !== "My Projects" &&
@@ -65,16 +70,17 @@ function getText() {
   * 
   * @return void
   */
-async function initText() {
-    $('#searchInput').val('Please Wait...');
-    $('#searchInput').attr('readonly', true);
-    getText()
+async function initText(domNode = null) {
+    $('#cc-search-searchInput').val('Please Wait...');
+    $('#cc-search-searchInput').attr('readonly', true);
+    getText(domNode)
     .then(results => {
         sessionStorage.setItem(cookie_name, JSON.stringify(results));
         link_data = results;
-        $('#searchInput').val('');
-        $('#searchInput').attr('readonly', false);
+        $('#cc-search-searchInput').val('');
+        $('#cc-search-searchInput').attr('readonly', false);
         initialized = true;
+        console.log("Initialized text.");
     });
 }
 
@@ -164,7 +170,7 @@ function display(searchResults) {
 }
 
 function keyupHandler() {
-    const searchTerm = document.querySelector("#searchInput").value;
+    const searchTerm = document.querySelector("#cc-search-searchInput").value;
     if (searchTerm === "" || !initialized) return display(null);
 
     display(search(searchTerm));
@@ -173,20 +179,45 @@ function keyupHandler() {
 function runControlCenter() {
 
     if (!initialized) {
+        console.log("Initializing text...");
         initText();
     }
     
-    document.querySelector('#searchInput').onkeyup = debounce(keyupHandler, 250);
+    document.querySelector('#cc-search-searchInput').onkeyup = debounce(keyupHandler, 250);
 
     // Append link to top of menu
-    document.querySelector('#control_center_menu').prepend(document.querySelector('#my_custom_cc_link'));
-    $('#searchInput').width($("#pid-go-project").width());
+    document.querySelector('#control_center_menu').prepend(document.querySelector('#cc-search-container'));
+    $('#cc-search-searchInput').width($("#pid-go-project").width());
 
     // Add a section divider before the Control Center Home section
     $('div.cc_menu_header:contains("Control Center Home")').parent().prepend('<div class="cc_menu_divider"></div>')
 
 }
 
+function runEveryPage() {
+
+    const cc_nav_link = $('a.nav-link:contains("Control Center")');
+    if (cc_nav_link.length === 0) {
+        return;
+    }
+
+    if (!initialized) {
+        console.log("Initializing text...");
+        const cc_href = cc_nav_link[0].href;
+        fetch(cc_href)
+            .then(result => result.text())
+            .then(htmlString => {
+                let dom = $('<html>')[0];
+                $(dom).html(htmlString);
+                initText(dom);
+            })       
+    }
+}
+
 $(document).ready(function() {
-    runControlCenter();
+    if ($('#cc-search-searchInput').length > 0) {
+        runControlCenter();
+    } else {
+        runEveryPage();
+    }
 });

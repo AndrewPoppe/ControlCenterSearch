@@ -3,9 +3,10 @@
     "namespace"  : "YaleREDCap\\ControlCenterSearch",
     "description": "Adds a search box to more easily find information and settings in the Control Center",
     "permissions": [
-        "redcap_entry_page_top",
+        "redcap_every_page_top",
         "redcap_control_center"
     ],
+    "enable-every-page-hooks-on-system-pages": true,
     "authors": [
         {
             "name"       : "Andrew Poppe",
