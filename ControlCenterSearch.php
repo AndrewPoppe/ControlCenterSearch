@@ -12,7 +12,11 @@ class ControlCenterSearch extends AbstractExternalModule
 
     function redcap_every_page_top($project_id)
     {
+        $this->initializeJavascriptModuleObject();
 ?>
+        <script type="text/javascript">
+            window.controlCenterSearchModule = <?= $this->getJavascriptModuleObjectName() ?>;
+        </script>
         <script src="<?= $this->getUrl("searcher.js") ?>"></script>
     <?php
     }

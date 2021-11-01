@@ -1,10 +1,4 @@
 
-const cookie_name = "CC_Search_Cookie";
-let link_data = JSON.parse(sessionStorage.getItem(cookie_name));
-let initialized = link_data !== null;
-let keypressed = false;
-
-
 /**
  * Finds nodes within the domNode that match the supplied search text
  * 
@@ -15,8 +9,7 @@ let keypressed = false;
  * 
  * @return array of matching nodes
  */
-function getNodesThatContain(searchText, domNode) {
-
+controlCenterSearchModule.getNodesThatContain = function(searchText, domNode) {
     let searchString = searchText.toLowerCase().replaceAll(" ", ".*");
 
     return $(domNode).find('#control_center_window').find(":not(iframe, script)")
@@ -37,7 +30,7 @@ function getNodesThatContain(searchText, domNode) {
  *          text: the html as a string
  *      }
  */
-function getText(domNode = null) {
+controlCenterSearchModule.getText = function(domNode = null) {
     const origin = new URL(window.location).origin;
     let aArr;
     if (domNode) {
@@ -70,56 +63,54 @@ function getText(domNode = null) {
   * 
   * @return void
   */
-async function initText(domNode = null) {
+controlCenterSearchModule.initText = async function (domNode = null) {
     $('#cc-search-searchInput').val('Please Wait...');
     $('#cc-search-searchInput').attr('readonly', true);
-    getText(domNode)
+    this.getText(domNode)
     .then(results => {
-        sessionStorage.setItem(cookie_name, JSON.stringify(results));
-        link_data = results;
+        sessionStorage.setItem(this.cookie_name, JSON.stringify(results));
+        this.link_data = results;
         $('#cc-search-searchInput').val('');
         $('#cc-search-searchInput').attr('readonly', false);
-        initialized = true;
+        this.initialized = true;
         console.log("Initialized text.");
     });
 }
 
 
-function search(searchTerm) {
-    
-    return link_data.map(ld => {
+controlCenterSearchModule.search = function(searchTerm) {
+    return this.link_data.map(ld => {
         let ld2 = ld;
-        ld2.searchResults = searchLinkText(ld2.text, searchTerm);
+        ld2.searchResults = this.searchLinkText(ld2.text, searchTerm);
         return ld2;
     }).filter(ld2 => ld2.searchResults > 0);
-
 }
 
 
-function searchLinkText(linkText, searchTerm) {
+controlCenterSearchModule.searchLinkText = function(linkText, searchTerm) {
     let dom = $('<html>')[0];
     $(dom).html(linkText);
-    let results = getNodesThatContain(searchTerm, dom);
+    let results = this.getNodesThatContain(searchTerm, dom);
     return results.length;
 }
 
-function hideModules() {
+controlCenterSearchModule.hideModules = function() {
     const el = $('.cc_menu_header:contains("External Modules")');
     el.nextAll().hide();
     el.hide();
 }
 
-function showModules() {
+controlCenterSearchModule.showModules = function() {
     const el = $('.cc_menu_header:contains("External Modules")');
     el.nextAll().show();
     el.show();
 }
 
-function showDividers() {
+controlCenterSearchModule.showDividers = function() {
     $('#control_center_menu div.cc_menu_divider').show();
 }
 
-function debounce(cb, interval, immediate) {
+controlCenterSearchModule.debounce = function(cb, interval, immediate) {
     var timeout;
   
     return function() {
@@ -139,20 +130,20 @@ function debounce(cb, interval, immediate) {
   }
   
 
-function display(searchResults) {
+  controlCenterSearchModule.display = function(searchResults) {
     
     // Reset panel to original status
     $('div.cc_menu_item').show();
     $('div.cc_menu_section').show();
-    showModules();
-    showDividers();
+    this.showModules();
+    this.showDividers();
     
     // Do nothing if search is null
     if (searchResults === null) return;
 
     let linksToShow = searchResults.map(el => el.name);
 
-    hideModules();
+    this.hideModules();
 
     $('div.cc_menu_item').each((i,el) => {
         let isSearchItem = el.id === "cc-search-item";
@@ -169,21 +160,22 @@ function display(searchResults) {
     });
 }
 
-function keyupHandler() {
+controlCenterSearchModule.keyupHandler = function() {
+    let module = controlCenterSearchModule;
     const searchTerm = document.querySelector("#cc-search-searchInput").value;
-    if (searchTerm === "" || !initialized) return display(null);
+    if (searchTerm === "" || !module.initialized) return module.display(null);
 
-    display(search(searchTerm));
+    module.display(module.search(searchTerm));
 }
 
-function runControlCenter() {
+controlCenterSearchModule.runControlCenter = function() {
 
-    if (!initialized) {
+    if (!this.initialized) {
         console.log("Initializing text...");
-        initText();
+        this.initText();
     }
     
-    document.querySelector('#cc-search-searchInput').onkeyup = debounce(keyupHandler, 250);
+    document.querySelector('#cc-search-searchInput').onkeyup = this.debounce(this.keyupHandler, 250);
 
     // Append link to top of menu
     document.querySelector('#control_center_menu').prepend(document.querySelector('#cc-search-container'));
@@ -194,14 +186,14 @@ function runControlCenter() {
 
 }
 
-function runEveryPage() {
+controlCenterSearchModule.runEveryPage = function() {
 
     const cc_nav_link = $('a.nav-link:contains("Control Center")');
     if (cc_nav_link.length === 0) {
         return;
     }
 
-    if (!initialized) {
+    if (!this.initialized) {
         console.log("Initializing text...");
         const cc_href = cc_nav_link[0].href;
         fetch(cc_href)
@@ -209,15 +201,19 @@ function runEveryPage() {
             .then(htmlString => {
                 let dom = $('<html>')[0];
                 $(dom).html(htmlString);
-                initText(dom);
+                this.initText(dom);
             })       
     }
 }
 
 $(document).ready(function() {
+    controlCenterSearchModule.cookie_name = "CC_Search_Cookie";
+    controlCenterSearchModule.link_data = JSON.parse(sessionStorage.getItem(controlCenterSearchModule.cookie_name));
+    controlCenterSearchModule.initialized = controlCenterSearchModule.link_data !== null;
+
     if ($('#cc-search-searchInput').length > 0) {
-        runControlCenter();
+        controlCenterSearchModule.runControlCenter();
     } else {
-        runEveryPage();
+        controlCenterSearchModule.runEveryPage();
     }
 });
