@@ -158,8 +158,7 @@ controlCenterSearchModule.debounce = function(cb, interval, immediate) {
             let popoverContainer = $('<div class="highlight">');
             let nResults = thisResult.searchResults.length;
             thisResult.searchResults.each((j,res) => {
-                this.thing = res;
-                let newContainer = $('<div>').html(res.markedText);
+                let newContainer = $('<div>');
                 let p = $('<p>').html(res.markedText);
                 newContainer.append(p);
                 if (j < (nResults-1)) {
