@@ -18,6 +18,7 @@ class ControlCenterSearch extends AbstractExternalModule
             window.controlCenterSearchModule = <?= $this->getJavascriptModuleObjectName() ?>;
         </script>
         <script src="<?= $this->getUrl("searcher.js") ?>"></script>
+        <link rel="stylesheet" href="<?= $this->getUrl("searcher.css") ?>">
     <?php
     }
 

@@ -10,13 +10,19 @@
  * @return array of matching nodes
  */
 controlCenterSearchModule.getNodesThatContain = function(searchText, domNode) {
-    let searchString = searchText.toLowerCase().replaceAll(" ", ".*");
+    let searchString = searchText.replaceAll(" ", ".+?");
+    let searchRE = new RegExp(searchString, 'gi');
 
     return $(domNode).find('#control_center_window').find(":not(iframe, script)")
     .contents()
+    .map(function() {
+        let text = this.textContent;
+        this.markedText = text.replace(searchRE, (match) => `<span class="marked">${match}</span>`);
+        this.matched = text !==  this.markedText;
+        return this;
+    })
     .filter(function() {
-        return this.nodeType == 3 
-            && this.textContent.toLowerCase().match(searchString) !== null;
+        return this.nodeType == 3 && this.matched;
     });
 }
 
@@ -82,16 +88,16 @@ controlCenterSearchModule.search = function(searchTerm) {
     return this.link_data.map(ld => {
         let ld2 = ld;
         ld2.searchResults = this.searchLinkText(ld2.text, searchTerm);
+        ld2.searchTerm = searchTerm;
         return ld2;
-    }).filter(ld2 => ld2.searchResults > 0);
+    }).filter(ld2 => ld2.searchResults.length > 0);
 }
 
 
 controlCenterSearchModule.searchLinkText = function(linkText, searchTerm) {
     let dom = $('<html>')[0];
     $(dom).html(linkText);
-    let results = this.getNodesThatContain(searchTerm, dom);
-    return results.length;
+    return this.getNodesThatContain(searchTerm, dom);
 }
 
 controlCenterSearchModule.hideModules = function() {
@@ -112,14 +118,12 @@ controlCenterSearchModule.showDividers = function() {
 
 controlCenterSearchModule.debounce = function(cb, interval, immediate) {
     var timeout;
-  
     return function() {
       var context = this, args = arguments;
       var later = function() {
         timeout = null;
         if (!immediate) cb.apply(context, args);
       };          
-  
       var callNow = immediate && !timeout;
   
       clearTimeout(timeout);
@@ -128,7 +132,6 @@ controlCenterSearchModule.debounce = function(cb, interval, immediate) {
       if (callNow) cb.apply(context, args);
     };
   }
-  
 
   controlCenterSearchModule.display = function(searchResults) {
     
@@ -149,7 +152,28 @@ controlCenterSearchModule.debounce = function(cb, interval, immediate) {
         let isSearchItem = el.id === "cc-search-item";
         if (!isSearchItem && !linksToShow.includes(trim(el.textContent))) {
             $(el).hide();
-        } 
+        } else if(!isSearchItem) {
+            let thisResult = searchResults.filter(result => result.name === trim(el.textContent))[0];
+            
+            let popoverContainer = $('<div class="highlight">');
+            let nResults = thisResult.searchResults.length;
+            thisResult.searchResults.each((j,res) => {
+                this.thing = res;
+                let newContainer = $('<div>').html(res.markedText);
+                let p = $('<p>').html(res.markedText);
+                newContainer.append(p);
+                if (j < (nResults-1)) {
+                    newContainer.append($('<hr>'));
+                }
+                popoverContainer.append(newContainer);
+            });
+            
+            $(el).popover({
+                trigger: "hover",
+                html: true,
+                content: popoverContainer.html()
+            });
+        }
     })
 
     $('div.cc_menu_section').each((i,el) => {
@@ -161,6 +185,9 @@ controlCenterSearchModule.debounce = function(cb, interval, immediate) {
 }
 
 controlCenterSearchModule.keyupHandler = function() {
+    // remove popovers
+    $('div.cc_menu_item').popover('dispose')
+
     let module = controlCenterSearchModule;
     const searchTerm = document.querySelector("#cc-search-searchInput").value;
     if (searchTerm === "" || !module.initialized) return module.display(null);

@@ -1,0 +1,10 @@
+.popover {
+    box-shadow: 0 0 0 99999px rgba(0, 0, 0, .8);
+    max-width: 33%;
+}
+
+.marked {
+    color: #900000;
+    font-weight: bold;
+    background-color: #FFFF00;
+}
