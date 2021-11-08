@@ -3,7 +3,7 @@
     max-width: 33%;
 }
 
-.marked {
+.marked.ccsearch {
     color: #900000;
     font-weight: bold;
     background-color: #FFFF00;

@@ -17,7 +17,7 @@ controlCenterSearchModule.getNodesThatContain = function(searchText, domNode) {
     .contents()
     .map(function() {
         let text = this.textContent;
-        this.markedText = text.replace(searchRE, (match) => `<span class="marked">${match}</span>`);
+        this.markedText = text.replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`);
         this.matched = text !==  this.markedText;
         return this;
     })
@@ -62,6 +62,22 @@ controlCenterSearchModule.getText = function(domNode = null) {
     return Promise.all(results);
 }
 
+controlCenterSearchModule.urldecode = function(str) {
+    return decodeURIComponent((str + '').replace(/\+/g, '%20'));
+}
+
+
+controlCenterSearchModule.storeResults = function(results) {
+    let resultsString = JSON.stringify(results);
+    console.log(resultsString);
+    let data = new FormData();
+    data.append(this.cookie_name, resultsString);
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', this.storeTextUrl);
+    xhr.send(data);
+    xhr.onload = function(){console.log(this)};
+}
+
  /**
   * If this is a new session, then text needs to be gotten.
   * 
@@ -74,7 +90,7 @@ controlCenterSearchModule.initText = async function (domNode = null) {
     $('#cc-search-searchInput').attr('readonly', true);
     this.getText(domNode)
     .then(results => {
-        sessionStorage.setItem(this.cookie_name, JSON.stringify(results));
+        this.storeResults(results);
         this.link_data = results;
         $('#cc-search-searchInput').val('');
         $('#cc-search-searchInput').attr('readonly', false);
@@ -199,7 +215,9 @@ controlCenterSearchModule.runControlCenter = function() {
     if (!this.initialized) {
         console.log("Initializing text...");
         this.initText();
-    }
+    } else {
+        this.link_data = JSON.parse(this.urldecode(this.link_text));
+    } 
     
     document.querySelector('#cc-search-searchInput').onkeyup = this.debounce(this.keyupHandler, 250);
 
@@ -212,34 +230,6 @@ controlCenterSearchModule.runControlCenter = function() {
 
 }
 
-controlCenterSearchModule.runEveryPage = function() {
-
-    const cc_nav_link = $('a.nav-link:contains("Control Center")');
-    if (cc_nav_link.length === 0) {
-        return;
-    }
-
-    if (!this.initialized) {
-        console.log("Initializing text...");
-        const cc_href = cc_nav_link[0].href;
-        fetch(cc_href)
-            .then(result => result.text())
-            .then(htmlString => {
-                let dom = $('<html>')[0];
-                $(dom).html(htmlString);
-                this.initText(dom);
-            })       
-    }
-}
-
 $(document).ready(function() {
-    controlCenterSearchModule.cookie_name = "CC_Search_Cookie";
-    controlCenterSearchModule.link_data = JSON.parse(sessionStorage.getItem(controlCenterSearchModule.cookie_name));
-    controlCenterSearchModule.initialized = controlCenterSearchModule.link_data !== null;
-
-    if ($('#cc-search-searchInput').length > 0) {
-        controlCenterSearchModule.runControlCenter();
-    } else {
-        controlCenterSearchModule.runEveryPage();
-    }
+    controlCenterSearchModule.runControlCenter();
 });
