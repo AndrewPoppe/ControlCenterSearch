@@ -69,13 +69,11 @@ controlCenterSearchModule.urldecode = function(str) {
 
 controlCenterSearchModule.storeResults = function(results) {
     let resultsString = JSON.stringify(results);
-    console.log(resultsString);
     let data = new FormData();
     data.append(this.cookie_name, resultsString);
     let xhr = new XMLHttpRequest();
     xhr.open('POST', this.storeTextUrl);
     xhr.send(data);
-    xhr.onload = function(){console.log(this)};
 }
 
  /**

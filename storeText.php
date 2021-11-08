@@ -5,6 +5,6 @@ if (!SUPER_USER) {
 
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST[$module::$moduleString])) {
-    $module->storeText(urlencode($_POST[$module::$moduleString]));
+    $_SESSION[$module::$moduleString] = urlencode($_POST[$module::$moduleString]);
     http_response_code(200);
 }

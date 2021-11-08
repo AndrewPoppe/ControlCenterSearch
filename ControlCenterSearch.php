@@ -12,34 +12,9 @@ class ControlCenterSearch extends AbstractExternalModule
 
     static $moduleString = "CC_Search";
 
-
-    function storeText($text)
-    {
-        $this->removeLogs("message = ?", USERID);
-        $this->log(USERID, [
-            "text" => $text,
-            "date" => time()
-        ]);
-    }
-
-    function getText()
-    {
-        $storedTextRes = $this->queryLogs("SELECT text, date where message = ?", USERID);
-        return $storedTextRes->fetch_assoc();
-    }
-
-    function isDateTooOld($dateString)
-    {
-        $date = intval($dateString);
-        $nSeconds = 60 * 60 * 24 * 7;
-        return (time() - $date) > $nSeconds;
-    }
-
-
-
     function redcap_control_center()
     {
-        $storedText = $this->getText();
+        $storedText = $_SESSION[$this::$moduleString];
         $this->initializeJavascriptModuleObject();
 ?>
         <div class="cc_menu_section" id='cc-search-container'>
@@ -56,8 +31,8 @@ class ControlCenterSearch extends AbstractExternalModule
             window.controlCenterSearchModule.cookie_name = "<?= $this::$moduleString ?>";
             window.controlCenterSearchModule.storeTextUrl = "<?= $this->getUrl("storeText.php") ?>";
 
-            <?php if (isset($storedText) && !$this->isDateTooOld($storedText["date"])) { ?>
-                window.controlCenterSearchModule.link_text = `<?= ($storedText["text"]) ?>`;
+            <?php if (isset($storedText)) { ?>
+                window.controlCenterSearchModule.link_text = `<?= $storedText ?>`;
                 window.controlCenterSearchModule.initialized = true;
             <?php } ?>
         </script>
