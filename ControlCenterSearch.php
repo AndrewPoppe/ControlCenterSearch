@@ -14,6 +14,7 @@ class ControlCenterSearch extends AbstractExternalModule
 
     function redcap_control_center()
     {
+        session_start();
         $storedText = $_SESSION[$this::$moduleString];
         $this->initializeJavascriptModuleObject();
 ?>
