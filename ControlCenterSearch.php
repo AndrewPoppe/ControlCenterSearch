@@ -5,7 +5,8 @@ namespace YaleREDCap\ControlCenterSearch;
 use ExternalModules\AbstractExternalModule;
 
 /**
- * Main EM Class
+ * @property \ExternalModules\Framework $framework
+ * @see Framework
  */
 class ControlCenterSearch extends AbstractExternalModule
 {
@@ -35,11 +36,19 @@ class ControlCenterSearch extends AbstractExternalModule
             http_response_code(403);
             return;
         }
-        if ( $action == "getLinkData" ) {
-            return urldecode($_SESSION["cc-search-linkData"]) ?? '';
-        } elseif ( $action == "storeLinkData" ) {
-
-            $_SESSION["cc-search-linkData"] = urlencode($payload["linkData"]);
+        try {
+            $setting = $user_id . '_cc-search-link-data';
+            if ( $action == "getLinkData" ) {
+                if ( empty($_SESSION["cc-search-initiated"]) ) {
+                    return '';
+                }
+                return $this->framework->getSystemSetting($setting) ?? '';
+            } elseif ( $action == "storeLinkData" ) {
+                $this->framework->setSystemSetting($setting, $payload["linkData"]);
+                $_SESSION["cc-search-initiated"] = true;
+            }
+        } catch ( \Throwable $e ) {
+            $this->framework->log('Error in redcap_module_ajax', [ 'error' => $e->getMessage() ]);
         }
     }
 }
