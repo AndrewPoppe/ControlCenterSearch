@@ -2,9 +2,6 @@
     "name": "Control Center Search",
     "namespace": "YaleREDCap\\ControlCenterSearch",
     "description": "Adds a search box to more easily find information and settings in the Control Center",
-    "permissions": [
-        "redcap_control_center"
-    ],
     "authors": [
         {
             "name": "Andrew Poppe",
@@ -12,14 +9,11 @@
             "institution": "Yale Center for Clinical Investigation"
         }
     ],
-    "framework-version": 8,
+    "framework-version": 12,
     "compatibility": {
         "php-version-min": "7.4.0",
         "php-version-max": "",
-        "redcap-version-min": "12.0.0",
+        "redcap-version-min": "13.1.27",
         "redcap-version-max": ""
-    },
-    "no-csrf-pages": [
-        "storeText"
-    ]
+    }
 }

@@ -9,7 +9,7 @@
  * 
  * @return array of matching nodes
  */
-controlCenterSearchModule.getNodesThatContain = function (searchText, domNode) {
+window.controlCenterSearchModule.getNodesThatContain = function (searchText, domNode) {
     let searchString = searchText.replaceAll(" ", ".+?");
     let searchRE = new RegExp(searchString, 'gi');
 
@@ -36,7 +36,7 @@ controlCenterSearchModule.getNodesThatContain = function (searchText, domNode) {
  *          text: the html as a string
  *      }
  */
-controlCenterSearchModule.getText = function (domNode = null) {
+window.controlCenterSearchModule.getText = function (domNode = null) {
     const origin = new URL(window.location).origin;
     let aArr;
     if (domNode) {
@@ -62,38 +62,26 @@ controlCenterSearchModule.getText = function (domNode = null) {
     return Promise.all(results);
 }
 
-controlCenterSearchModule.urldecode = function (str) {
+window.controlCenterSearchModule.urldecode = function (str) {
     return decodeURIComponent((str + '').replace(/\+/g, '%20'));
 }
 
-controlCenterSearchModule.urlencode = function (str) {
+window.controlCenterSearchModule.urlencode = function (str) {
     return encodeURIComponent(str)
 }
 
-
-controlCenterSearchModule.storeResults = function (results) {
-    const resultsString = JSON.stringify(results);
-    const encodedData = this.urlencode(resultsString);
-    const payload = `${this.cookie_name}=${encodedData}`;
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', this.storeTextUrl, true);
-    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-    xhr.send(payload);
-}
-
 /**
- * If this is a new session, then text needs to be gotten.
+ * Text needs to be gotten.
  * 
  * Prevents using the search box until then. 
  * 
  * @return void
  */
-controlCenterSearchModule.initText = async function (domNode = null) {
+window.controlCenterSearchModule.initText = async function (domNode = null) {
     $('#cc-search-searchInput').val('Please Wait...');
     $('#cc-search-searchInput').attr('readonly', true);
     this.getText(domNode)
         .then(results => {
-            this.storeResults(results);
             this.link_data = results;
             $('#cc-search-searchInput').val('');
             $('#cc-search-searchInput').attr('readonly', false);
@@ -103,7 +91,7 @@ controlCenterSearchModule.initText = async function (domNode = null) {
 }
 
 
-controlCenterSearchModule.search = function (searchTerm) {
+window.controlCenterSearchModule.search = function (searchTerm) {
     return this.link_data.map(ld => {
         let ld2 = ld;
         ld2.searchResults = this.searchLinkText(ld2.text, searchTerm);
@@ -113,29 +101,29 @@ controlCenterSearchModule.search = function (searchTerm) {
 }
 
 
-controlCenterSearchModule.searchLinkText = function (linkText, searchTerm) {
+window.controlCenterSearchModule.searchLinkText = function (linkText, searchTerm) {
     let dom = $('<html>')[0];
     $(dom).html(linkText);
     return this.getNodesThatContain(searchTerm, dom);
 }
 
-controlCenterSearchModule.hideModules = function () {
+window.controlCenterSearchModule.hideModules = function () {
     const el = $('.cc_menu_header:contains("External Modules")');
     el.nextAll().hide();
     el.hide();
 }
 
-controlCenterSearchModule.showModules = function () {
+window.controlCenterSearchModule.showModules = function () {
     const el = $('.cc_menu_header:contains("External Modules")');
     el.nextAll().show();
     el.show();
 }
 
-controlCenterSearchModule.showDividers = function () {
+window.controlCenterSearchModule.showDividers = function () {
     $('#control_center_menu div.cc_menu_divider').show();
 }
 
-controlCenterSearchModule.debounce = function (cb, interval, immediate) {
+window.controlCenterSearchModule.debounce = function (cb, interval, immediate) {
     var timeout;
     return function () {
         var context = this, args = arguments;
@@ -152,7 +140,7 @@ controlCenterSearchModule.debounce = function (cb, interval, immediate) {
     };
 }
 
-controlCenterSearchModule.display = function (searchResults) {
+window.controlCenterSearchModule.display = function (searchResults) {
 
     // Reset panel to original status
     $('div.cc_menu_item').show();
@@ -202,24 +190,22 @@ controlCenterSearchModule.display = function (searchResults) {
     });
 }
 
-controlCenterSearchModule.keyupHandler = function () {
+window.controlCenterSearchModule.keyupHandler = function () {
     // remove popovers
     $('div.cc_menu_item').popover('dispose')
 
-    const module = controlCenterSearchModule;
+    const module = window.controlCenterSearchModule;
     const searchTerm = document.querySelector("#cc-search-searchInput").value;
     if (searchTerm === "" || !module.initialized) return module.display(null);
 
     module.display(module.search(searchTerm));
 }
 
-controlCenterSearchModule.runControlCenter = function () {
+window.controlCenterSearchModule.runControlCenter = function () {
 
     if (!this.initialized) {
         console.log("Initializing text...");
         this.initText();
-    } else {
-        this.link_data = JSON.parse(this.urldecode(this.link_text));
     }
 
     document.querySelector('#cc-search-searchInput').onkeyup = this.debounce(this.keyupHandler, 250);
@@ -234,5 +220,5 @@ controlCenterSearchModule.runControlCenter = function () {
 }
 
 $(document).ready(function () {
-    controlCenterSearchModule.runControlCenter();
+    window.controlCenterSearchModule.runControlCenter();
 });
