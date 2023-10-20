@@ -62,14 +62,6 @@ window.controlCenterSearchModule.getText = function (domNode = null) {
     return Promise.all(results);
 }
 
-window.controlCenterSearchModule.urldecode = function (str) {
-    return decodeURIComponent((str + '').replace(/\+/g, '%20'));
-}
-
-window.controlCenterSearchModule.urlencode = function (str) {
-    return encodeURIComponent(str)
-}
-
 /**
  * Text needs to be gotten.
  * 
@@ -86,6 +78,11 @@ window.controlCenterSearchModule.initText = async function (domNode = null) {
             $('#cc-search-searchInput').val('');
             $('#cc-search-searchInput').attr('readonly', false);
             this.initialized = true;
+            this.ajax('storeLinkData', { linkData: JSON.stringify(this.link_data) })
+                .then(result => {
+                    console.log("Stored link data.");
+                })
+                .catch(error => console.error(error));
             console.log("Initialized text.");
         });
 }
@@ -203,10 +200,17 @@ window.controlCenterSearchModule.keyupHandler = function () {
 
 window.controlCenterSearchModule.runControlCenter = function () {
 
-    if (!this.initialized) {
-        console.log("Initializing text...");
-        this.initText();
-    }
+    this.ajax('getLinkData', {})
+        .then(result => {
+            if (result == '') {
+                console.log("Initializing text...");
+                this.initText();
+            } else {
+                this.link_data = JSON.parse(result);
+                this.initialized = true;
+            }
+        })
+        .catch(error => console.error(error));
 
     document.querySelector('#cc-search-searchInput').onkeyup = this.debounce(this.keyupHandler, 250);
 

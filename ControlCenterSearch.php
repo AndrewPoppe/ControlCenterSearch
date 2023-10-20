@@ -24,8 +24,22 @@ class ControlCenterSearch extends AbstractExternalModule
         <script type="text/javascript">
             window.controlCenterSearchModule = <?= $this->getJavascriptModuleObjectName() ?>;
         </script>
-        <script src="<?= $this->getUrl("searcher.js") ?>"></script>
+        <script defer src="<?= $this->getUrl("searcher.js") ?>"></script>
         <link rel="stylesheet" href="<?= $this->getUrl("searcher.css") ?>">
         <?php
+    }
+
+    public function redcap_module_ajax($action, $payload, $project_id, $record, $instrument, $event_id, $repeat_instance, $survey_hash, $response_id, $survey_queue_hash, $page, $page_full, $user_id, $group_id)
+    {
+        if ( !$this->framework->isSuperUser() ) {
+            http_response_code(403);
+            return;
+        }
+        if ( $action == "getLinkData" ) {
+            return urldecode($_SESSION["cc-search-linkData"]) ?? '';
+        } elseif ( $action == "storeLinkData" ) {
+
+            $_SESSION["cc-search-linkData"] = urlencode($payload["linkData"]);
+        }
     }
 }

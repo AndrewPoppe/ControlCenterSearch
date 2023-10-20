@@ -16,7 +16,7 @@ Once enabled, it adds a search bar to the top of the left-side menu in the contr
 
 Type the phrase you'd like to search for, and the module filters the links in the left-side menu to include only the pages that contain that text.
 
-![](images/searching.png)
+![](images/searching.gif)
 
 *Note: Any spaces in the search term are replaced with wildcards to make the search a little more flexible (E.g., "The greatest" will find "**The** cake is my **greatest** joy")*
 

@@ -15,5 +15,9 @@
         "php-version-max": "",
         "redcap-version-min": "13.1.27",
         "redcap-version-max": ""
-    }
+    },
+    "auth-ajax-actions": [
+        "getLinkData",
+        "storeLinkData"
+    ]
 }
