@@ -163,9 +163,9 @@ window.controlCenterSearchModule.display = function (searchResults) {
 
     this.hideModules();
     if (typeof(bootstrap) !== 'undefined') {
-        bootstrap.Tooltip.Default.allowList.div.push('style','onclick');
+        bootstrap.Tooltip.Default.allowList.p.push('style','onclick');
     } else {
-        $.fn.popover.Constructor.Default.whiteList.div.push('style','onclick');
+        $.fn.popover.Constructor.Default.whiteList.p.push('style','onclick');
     }
 
     $('div.cc_menu_item').each((i, el) => {
@@ -183,7 +183,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
                 url.searchParams.set('ccss', encodeURIComponent(thisResult.searchTerm));
                 url.searchParams.set('ccsh', hash);
                 let newContainer = $('<div>');
-                let p = $(`<div style="cursor:pointer;" onclick="document.location.href='${url.href}'">`).html(res.markedText);
+                let p = $(`<p style="cursor:pointer;" onclick="document.location.href='${url.href}'">`).html(res.markedText);
                 newContainer.append(p);
                 if (j < (nResults - 1)) {
                     newContainer.append($('<hr>'));
