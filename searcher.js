@@ -162,7 +162,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
     let linksToShow = searchResults.map(el => el.name);
 
     this.hideModules();
-    if (bootstrap !== undefined) {
+    if (typeof(bootstrap) !== 'undefined') {
         bootstrap.Tooltip.Default.allowList.div.push('style','onclick');
     } else {
         $.fn.popover.Constructor.Default.allowList.div.push('style','onclick');
