@@ -236,7 +236,7 @@ window.controlCenterSearchModule.findMatchInCurrentPage = async function (search
         if (hash === matchHash) {
             console.log(element)
             $(element).html($(element).html().replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`));
-            window.scrollTo(0, element.getBoundingClientRect().y - document.documentElement.clientHeight/2)
+            window.scrollTo({top:element.getBoundingClientRect().y - document.documentElement.clientHeight/2, behavior: 'smooth'});
             // element.scrollIntoView({ behavior: 'smooth', block: 'center'});
             return true;
         }
