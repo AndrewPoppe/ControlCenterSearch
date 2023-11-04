@@ -165,7 +165,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
     if (typeof(bootstrap) !== 'undefined') {
         bootstrap.Tooltip.Default.allowList.div.push('style','onclick');
     } else {
-        $.fn.popover.Constructor.Default.allowList.div.push('style','onclick');
+        $.fn.popover.Constructor.Default.whiteList.div.push('style','onclick');
     }
 
     $('div.cc_menu_item').each((i, el) => {
