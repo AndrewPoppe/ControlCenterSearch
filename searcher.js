@@ -19,6 +19,7 @@ window.controlCenterSearchModule.getNodesThatContain = function (searchText, dom
             let text = this.textContent;
             this.markedText = text.replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`);
             this.matched = text !== this.markedText;
+            this.hash = this.matched ? window.controlCenterSearchModule.hash(text) : -1;
             return this;
         })
         .filter(function () {
@@ -137,6 +138,16 @@ window.controlCenterSearchModule.debounce = function (cb, interval, immediate) {
     };
 }
 
+window.controlCenterSearchModule.hash = async function (str) {
+    if (crypto?.subtle?.digest === undefined) {
+        return -1;
+    }
+    const strUint8 = new TextEncoder().encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', strUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); 
+}
+
 window.controlCenterSearchModule.display = function (searchResults) {
 
     // Reset panel to original status
@@ -151,6 +162,11 @@ window.controlCenterSearchModule.display = function (searchResults) {
     let linksToShow = searchResults.map(el => el.name);
 
     this.hideModules();
+    if (bootstrap) {
+        bootstrap.Tooltip.Default.allowList.div.push('style','onclick');
+    } else {
+        $.fn.popover.Constructor.Default.allowList.div.push('style','onclick');
+    }
 
     $('div.cc_menu_item').each((i, el) => {
         let isSearchItem = el.id === "cc-search-item";
@@ -161,38 +177,42 @@ window.controlCenterSearchModule.display = function (searchResults) {
 
             let popoverContainer = $('<div class="highlight">');
             let nResults = thisResult.searchResults.length;
-            thisResult.searchResults.each((j, res) => {
+            Promise.all(thisResult.searchResults.map(async (j, res) => {
+                const hash = await res.hash;
+                let url = new URL(thisResult.link);
+                url.searchParams.set('ccss', encodeURIComponent(thisResult.searchTerm));
+                url.searchParams.set('ccsh', hash);
                 let newContainer = $('<div>');
-                let p = $('<p>').html(res.markedText);
+                let p = $(`<div style="cursor:pointer;" onclick="document.location.href='${url.href}'">`).html(res.markedText);
                 newContainer.append(p);
                 if (j < (nResults - 1)) {
                     newContainer.append($('<hr>'));
                 }
                 popoverContainer.append(newContainer);
-            });
-
-            $(el).popover({
-                trigger: "manual",
-                html: true,
-                content: popoverContainer.html(),
-                animation: false
-            })
-            .on("mouseenter", function() {
-                var _this = this;
-                $(_this).popover("show");
-                var popoverId = $(_this).attr('aria-describedby');
-                $('#'+popoverId).on("mouseleave", function() {
-                  $(_this).popover('hide');
+            })).then(() => {
+                $(el).popover({
+                    trigger: "manual",
+                    html: true,
+                    content: popoverContainer.html(),
+                    animation: false
+                })
+                .on("mouseenter", function() {
+                    var _this = this;
+                    $(_this).popover("show");
+                    var popoverId = $(_this).attr('aria-describedby');
+                    $('#'+popoverId).on("mouseleave", function() {
+                        $(_this).popover('hide');
+                    });
+                })
+                .on("mouseleave", function() {
+                    var _this = this;
+                    var popoverId = $(_this).attr('aria-describedby');
+                    setTimeout(function() {
+                        if (!$("#"+popoverId+":hover").length) {
+                            $(_this).popover("hide");
+                        }
+                    }, 30);
                 });
-            })
-            .on("mouseleave", function() {
-                var _this = this;
-                var popoverId = $(_this).attr('aria-describedby');
-                setTimeout(function() {
-                  if (!$("#"+popoverId+":hover").length) {
-                    $(_this).popover("hide");
-                  }
-                }, 30);
             });
         }
     })
@@ -203,6 +223,51 @@ window.controlCenterSearchModule.display = function (searchResults) {
             $(el).prev('div.cc_menu_divider').hide();
         }
     });
+}
+
+window.controlCenterSearchModule.findMatchInCurrentPage = async function (searchTerm, matchHash) {
+    const searchString = searchTerm.replaceAll(" ", ".+?");
+    const searchRE = new RegExp(searchString, 'gi');
+    const elements = window.controlCenterSearchModule.getAllTextElements().filter(el => searchRE.test(el.textContent));
+    
+    for (let element of elements) {
+        const text = element.textContent;
+        const hash = await window.controlCenterSearchModule.hash(text);
+        if (hash === matchHash) {
+            console.log(element)
+            $(element).html($(element).html().replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`));
+            window.scrollTo(0, element.getBoundingClientRect().y - document.documentElement.clientHeight/2)
+            // element.scrollIntoView({ behavior: 'smooth', block: 'center'});
+            return true;
+        }
+    }
+    return false;
+}
+
+window.controlCenterSearchModule.getAllTextElements = function () {
+    const textElements = [];
+
+    function traverse(node) {
+        if (
+            node.nodeType === 1 &&
+            node.tagName !== 'SCRIPT' &&
+            node.tagName !== 'IFRAME' &&
+            node.hasChildNodes()
+        ) {
+            for (const childNode of node.childNodes) {
+                traverse(childNode);
+            }
+        } else if (
+            node.nodeType === 3 &&
+            node.nodeValue.trim() !== '' &&
+            !['SCRIPT', 'IFRAME'].includes(node.parentElement.tagName)
+        ) {
+            textElements.push(node.parentElement);
+        }
+    }
+
+    traverse(document.body);
+    return textElements;
 }
 
 window.controlCenterSearchModule.keyupHandler = function () {
@@ -217,6 +282,14 @@ window.controlCenterSearchModule.keyupHandler = function () {
 }
 
 window.controlCenterSearchModule.runControlCenter = function () {
+
+    // Scroll to selected element if applicable
+    const params = new URLSearchParams(window.location.search);
+    const matchHash = params.get('ccsh');
+    const searchTerm = decodeURIComponent(params.get('ccss'));
+    if (matchHash !== null && searchTerm !== null) {
+        this.findMatchInCurrentPage(searchTerm, matchHash);
+    }
 
     this.ajax('getLinkData', {})
         .then(result => {
@@ -238,7 +311,6 @@ window.controlCenterSearchModule.runControlCenter = function () {
 
     // Add a section divider before the Control Center Home section
     $('div.cc_menu_header:contains("Control Center Home")').parent().prepend('<div class="cc_menu_divider"></div>')
-
 }
 
 $(document).ready(function () {
