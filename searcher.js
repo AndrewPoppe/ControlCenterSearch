@@ -172,9 +172,27 @@ window.controlCenterSearchModule.display = function (searchResults) {
             });
 
             $(el).popover({
-                trigger: "hover",
+                trigger: "manual",
                 html: true,
-                content: popoverContainer.html()
+                content: popoverContainer.html(),
+                animation: false
+            })
+            .on("mouseenter", function() {
+                var _this = this;
+                $(_this).popover("show");
+                var popoverId = $(_this).attr('aria-describedby');
+                $('#'+popoverId).on("mouseleave", function() {
+                  $(_this).popover('hide');
+                });
+            })
+            .on("mouseleave", function() {
+                var _this = this;
+                var popoverId = $(_this).attr('aria-describedby');
+                setTimeout(function() {
+                  if (!$("#"+popoverId+":hover").length) {
+                    $(_this).popover("hide");
+                  }
+                }, 30);
             });
         }
     })
