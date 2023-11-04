@@ -190,6 +190,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
                 }
                 popoverContainer.append(newContainer);
             })).then(() => {
+                $(el).unbind('mouseenter mouseleave');
                 $(el).popover({
                     trigger: "manual",
                     html: true,
@@ -228,16 +229,18 @@ window.controlCenterSearchModule.display = function (searchResults) {
 window.controlCenterSearchModule.findMatchInCurrentPage = async function (searchTerm, matchHash) {
     const searchString = searchTerm.replaceAll(" ", ".+?");
     const searchRE = new RegExp(searchString, 'gi');
-    const elements = window.controlCenterSearchModule.getAllTextElements().filter(el => searchRE.test(el.textContent));
+    const elements = window.controlCenterSearchModule.getAllTextElements().filter(function(el) {
+        let text = el.textContent;
+        let markedText = text.replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`);
+        return text !== markedText;
+    });
     
     for (let element of elements) {
         const text = element.textContent;
         const hash = await window.controlCenterSearchModule.hash(text);
         if (hash === matchHash) {
-            console.log(element)
             $(element).html($(element).html().replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`));
             window.scrollTo({top:element.getBoundingClientRect().y - document.documentElement.clientHeight/2, behavior: 'smooth'});
-            // element.scrollIntoView({ behavior: 'smooth', block: 'center'});
             return true;
         }
     }
