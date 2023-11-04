@@ -3,6 +3,12 @@
     max-width: 33%;
 }
 
+.popover-body {
+    max-height: 75vh;
+    overflow-y: auto;
+    white-space:pre-wrap;
+}
+
 .marked.ccsearch {
     color: #900000;
     font-weight: bold;

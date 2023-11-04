@@ -13,7 +13,7 @@ window.controlCenterSearchModule.getNodesThatContain = function (searchText, dom
     let searchString = searchText.replaceAll(" ", ".+?");
     let searchRE = new RegExp(searchString, 'gi');
 
-    return $(domNode).find('#control_center_window').find(":not(iframe, script)")
+    return $(domNode).find('#control_center_window').find(":not(iframe, script, style)")
         .contents()
         .map(function () {
             let text = this.textContent;
@@ -24,7 +24,8 @@ window.controlCenterSearchModule.getNodesThatContain = function (searchText, dom
         })
         .filter(function () {
             return this.nodeType == 3 && this.matched;
-        });
+        })
+        .toArray();
 }
 
 /**
@@ -177,7 +178,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
 
             let popoverContainer = $('<div class="highlight">');
             let nResults = thisResult.searchResults.length;
-            Promise.all(thisResult.searchResults.map(async (j, res) => {
+            Promise.all(thisResult.searchResults.map(async (res, j) => {
                 const hash = await res.hash;
                 let url = new URL(thisResult.link);
                 url.searchParams.set('ccss', encodeURIComponent(thisResult.searchTerm));
@@ -229,16 +230,26 @@ window.controlCenterSearchModule.display = function (searchResults) {
 window.controlCenterSearchModule.findMatchInCurrentPage = async function (searchTerm, matchHash) {
     const searchString = searchTerm.replaceAll(" ", ".+?");
     const searchRE = new RegExp(searchString, 'gi');
-    const elements = window.controlCenterSearchModule.getAllTextElements().filter(function(el) {
-        let text = el.textContent;
-        let markedText = text.replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`);
-        return text !== markedText;
-    });
+
+
+    const nodes = await Promise.all($(document.getElementById('control_center_window')).find(":not(iframe, script)")
+        .contents()
+        .toArray()
+        .map(async function (el) {
+            if (el.nodeType !== 3) return el;
+            let text = el.textContent;
+            el.markedText = text.replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`);
+            el.matched = text !== el.markedText;
+            el.hash = el.matched ? (await window.controlCenterSearchModule.hash(text)) : -1;
+            el.hashMatched = await matchHash === el.hash;
+            return el;
+        }));
     
-    for (let element of elements) {
-        const text = element.textContent;
-        const hash = await window.controlCenterSearchModule.hash(text);
-        if (hash === matchHash) {
+
+    for (let node of nodes) {
+        if (node.hashMatched) {
+            const element = node.parentElement;
+            console.log(element)
             $(element).html($(element).html().replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`));
             window.scrollTo({top:element.getBoundingClientRect().y - document.documentElement.clientHeight/2, behavior: 'smooth'});
             return true;
@@ -247,38 +258,12 @@ window.controlCenterSearchModule.findMatchInCurrentPage = async function (search
     return false;
 }
 
-window.controlCenterSearchModule.getAllTextElements = function () {
-    const textElements = [];
-
-    function traverse(node) {
-        if (
-            node.nodeType === 1 &&
-            node.tagName !== 'SCRIPT' &&
-            node.tagName !== 'IFRAME' &&
-            node.hasChildNodes()
-        ) {
-            for (const childNode of node.childNodes) {
-                traverse(childNode);
-            }
-        } else if (
-            node.nodeType === 3 &&
-            node.nodeValue.trim() !== '' &&
-            !['SCRIPT', 'IFRAME'].includes(node.parentElement.tagName)
-        ) {
-            textElements.push(node.parentElement);
-        }
-    }
-
-    traverse(document.body);
-    return textElements;
-}
-
 window.controlCenterSearchModule.keyupHandler = function () {
     // remove popovers
     $('div.cc_menu_item').popover('dispose')
 
     const module = window.controlCenterSearchModule;
-    const searchTerm = document.querySelector("#cc-search-searchInput").value;
+    const searchTerm = document.querySelector("#cc-search-searchInput").value.trim();
     if (searchTerm === "" || !module.initialized) return module.display(null);
 
     module.display(module.search(searchTerm));
@@ -291,7 +276,7 @@ window.controlCenterSearchModule.runControlCenter = function () {
     const matchHash = params.get('ccsh');
     const searchTerm = decodeURIComponent(params.get('ccss'));
     if (matchHash !== null && searchTerm !== null) {
-        this.findMatchInCurrentPage(searchTerm, matchHash);
+        window.controlCenterSearchModule.findMatchInCurrentPage(searchTerm, matchHash);
     }
 
     this.ajax('getLinkData', {})
