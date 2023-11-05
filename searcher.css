@@ -1,10 +1,10 @@
-.popover {
+.ccs-popover {
     box-shadow: 0 0 0 99999px rgba(0, 0, 0, .7);
-    max-width: 33vw;
-    min-width: 33vw;
+    width: clamp(33vw, 500px, 50vw);
+    max-width: 100%;
 }
 
-.popover-body {
+.ccs-popover .popover-body {
     max-height: 75vh;
     overflow-y: auto;
     white-space:pre-wrap;

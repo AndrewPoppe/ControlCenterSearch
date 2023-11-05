@@ -199,7 +199,8 @@ window.controlCenterSearchModule.display = function (searchResults) {
                     content: popoverContainer.html(),
                     animation: false,
                     fallbackPlacements: ['right'],
-                    template: '<div class="popover" role="tooltip"><h3 class="popover-header"></h3><div class="popover-arrow"></div><div class="popover-body row row-cols-1 highlight m-1"></div></div>',
+                    container: 'body',
+                    template: '<div class="popover ccs-popover" role="tooltip"><h3 class="popover-header"></h3><div class="popover-arrow"></div><div class="popover-body row row-cols-1 highlight m-1"></div></div>',
                 })
                 .on("mouseenter", function() {
                     var _this = this;
@@ -255,13 +256,15 @@ window.controlCenterSearchModule.findMatchInCurrentPage = async function (search
 
     for (let node of nodes) {
         if (node.hashMatched) {
-            const element = node.parentElement;
-            $(element).html($(element).html().replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`));
-            const elY = element.getBoundingClientRect().y;
-            const scrollHeight = document.querySelector('body').scrollHeight;
-            const clientHeight = document.documentElement.clientHeight/2;
-            const scrollY = elY - min(clientHeight, scrollHeight, elY);
-            window.scrollTo({top:scrollY, behavior: 'smooth'});
+            setTimeout(() => {
+                const element = node.parentElement;
+                $(element).html($(element).html().replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`));
+                const elY = element.getBoundingClientRect().y;
+                const scrollHeight = document.querySelector('body').scrollHeight;
+                const clientHeight = document.documentElement.clientHeight/2;
+                const scrollY = elY - min(clientHeight, scrollHeight, elY);
+                window.scrollTo({top:scrollY, behavior: 'smooth'});
+            }, 0);
             return true;
         }
     }
