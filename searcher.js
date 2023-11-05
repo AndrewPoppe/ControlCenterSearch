@@ -82,10 +82,10 @@ window.controlCenterSearchModule.initText = async function (domNode = null) {
             this.initialized = true;
             this.ajax('storeLinkData', { linkData: JSON.stringify(this.link_data) })
                 .then(result => {
-                    console.log("Stored link data.");
+                    console.log("Control Center Search: Stored link data.");
                 })
                 .catch(error => console.error(error));
-            console.log("Initialized text.");
+            console.log("Control Center Search: Initialized text.");
         });
 }
 
@@ -164,47 +164,56 @@ window.controlCenterSearchModule.display = function (searchResults) {
 
     this.hideModules();
     if (typeof(bootstrap) !== 'undefined') {
-        bootstrap.Tooltip.Default.allowList.p.push('style','onclick');
+        bootstrap.Tooltip.Default.allowList.div.push('onclick');
     } else {
-        $.fn.popover.Constructor.Default.whiteList.p.push('style','onclick');
+        $.fn.popover.Constructor.Default.whiteList.div.push('onclick');
     }
 
+    const popoverDelayMs = 200;
     $('div.cc_menu_item').each((i, el) => {
-        let isSearchItem = el.id === "cc-search-item";
-        if (!isSearchItem && !linksToShow.includes(trim(el.textContent))) {
+        const isSearchItem = el.id === "cc-search-item";
+        if (!isSearchItem && !linksToShow.includes(el.textContent.trim())) {
             $(el).hide();
         } else if (!isSearchItem) {
-            let thisResult = searchResults.filter(result => result.name === trim(el.textContent))[0];
+            const thisResult = searchResults.filter(result => result.name === el.textContent.trim())[0];
+            const popoverContainer = $('<div class="col">');
+            const popoverTitleIcon = $(el).find('i').get(0).outerHTML;
+            const popoverTitle = popoverTitleIcon+$(el).text();
 
-            let popoverContainer = $('<div class="highlight">');
-            let nResults = thisResult.searchResults.length;
             Promise.all(thisResult.searchResults.map(async (res, j) => {
                 const hash = await res.hash;
-                let url = new URL(thisResult.link);
+                const url = new URL(thisResult.link);
                 url.searchParams.set('ccss', encodeURIComponent(thisResult.searchTerm));
                 url.searchParams.set('ccsh', hash);
-                let newContainer = $('<div>');
-                let p = $(`<p style="cursor:pointer;" onclick="document.location.href='${url.href}'">`).html(res.markedText);
+                const newContainer = $(`<div class="card ccs-card bg-light" onclick="document.location.href='${url.href}'">`);
+                const p = $(`<p>`).html(res.markedText.trim());
+
                 newContainer.append(p);
-                if (j < (nResults - 1)) {
-                    newContainer.append($('<hr>'));
-                }
                 popoverContainer.append(newContainer);
             })).then(() => {
                 $(el).unbind('mouseenter mouseleave');
+                $(el).attr('data-bs-placement','right');
                 $(el).popover({
+                    title: popoverTitle,
                     trigger: "manual",
+                    placement: "right",
                     html: true,
                     content: popoverContainer.html(),
-                    animation: false
+                    animation: false,
+                    fallbackPlacements: ['right'],
+                    template: '<div class="popover" role="tooltip"><h3 class="popover-header"></h3><div class="popover-arrow"></div><div class="popover-body row row-cols-1 highlight my-1 mr-1 g-1"></div></div>',
                 })
                 .on("mouseenter", function() {
                     var _this = this;
-                    $(_this).popover("show");
-                    var popoverId = $(_this).attr('aria-describedby');
-                    $('#'+popoverId).on("mouseleave", function() {
-                        $(_this).popover('hide');
-                    });
+                    setTimeout(function() {
+                        if ($(_this).is(":hover")) {
+                            $(_this).popover("show");
+                            var popoverId = $(_this).attr('aria-describedby');
+                            $('#'+popoverId).on("mouseleave", function() {
+                                $(_this).popover('hide');
+                            });
+                        }
+                    }, popoverDelayMs);
                 })
                 .on("mouseleave", function() {
                     var _this = this;
@@ -213,7 +222,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
                         if (!$("#"+popoverId+":hover").length) {
                             $(_this).popover("hide");
                         }
-                    }, 30);
+                    }, popoverDelayMs);
                 });
             });
         }
@@ -249,9 +258,12 @@ window.controlCenterSearchModule.findMatchInCurrentPage = async function (search
     for (let node of nodes) {
         if (node.hashMatched) {
             const element = node.parentElement;
-            console.log(element)
             $(element).html($(element).html().replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`));
-            window.scrollTo({top:element.getBoundingClientRect().y - document.documentElement.clientHeight/2, behavior: 'smooth'});
+            const elY = element.getBoundingClientRect().y;
+            const scrollHeight = document.querySelector('body').scrollHeight;
+            const clientHeight = document.documentElement.clientHeight/2;
+            const scrollY = elY - min(clientHeight, scrollHeight, elY);
+            window.scrollTo({top:scrollY, behavior: 'smooth'});
             return true;
         }
     }
@@ -282,7 +294,7 @@ window.controlCenterSearchModule.runControlCenter = function () {
     this.ajax('getLinkData', {})
         .then(result => {
             if (result == '') {
-                console.log("Initializing text...");
+                console.log("Control Center Search: Initializing text...");
                 this.initText();
             } else {
                 this.link_data = JSON.parse(result);
@@ -292,6 +304,7 @@ window.controlCenterSearchModule.runControlCenter = function () {
         .catch(error => console.error(error));
 
     document.querySelector('#cc-search-searchInput').onkeyup = this.debounce(this.keyupHandler, 250);
+    document.querySelector('#cc-search-searchInput').onsearch = this.keyupHandler;
 
     // Append link to top of menu
     document.querySelector('#control_center_menu').prepend(document.querySelector('#cc-search-container'));

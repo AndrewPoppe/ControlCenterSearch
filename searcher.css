@@ -1,6 +1,7 @@
 .popover {
     box-shadow: 0 0 0 99999px rgba(0, 0, 0, .7);
-    max-width: 33%;
+    max-width: 33vw;
+    min-width: 33vw;
 }
 
 .popover-body {
@@ -13,4 +14,14 @@
     color: #900000;
     font-weight: bold;
     background-color: #FFFF00;
+}
+
+.ccs-card {
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.ccs-card:hover {
+    background-color: #0022FF99 !important;
+    color: white;
 }
