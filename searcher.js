@@ -183,9 +183,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
             Promise.all(thisResult.searchResults.map(async (res, j) => {
                 const hash = await res.hash;
                 const url = new URL(thisResult.link);
-                url.searchParams.set('ccss', encodeURIComponent(thisResult.searchTerm));
-                url.searchParams.set('ccsh', hash);
-                const newContainer = $(`<div class="card ccs-card bg-light mb-1" onclick="document.location.href='${url.href}'">`);
+                const newContainer = $(`<div class="card ccs-card bg-light mb-1" onclick="sessionStorage.setItem('ccsh', '${hash}');document.location.href='${url.href}'">`);
                 const p = $(`<p>`).html(res.markedText.trim());
 
                 newContainer.append(p);
@@ -276,6 +274,7 @@ window.controlCenterSearchModule.keyupHandler = function () {
 
     const module = window.controlCenterSearchModule;
     const searchTerm = document.querySelector("#cc-search-searchInput").value.trim();
+    sessionStorage.setItem('ccss', searchTerm);
     if (searchTerm === "" || !module.initialized) return module.display(null);
 
     module.display(module.search(searchTerm));
@@ -285,13 +284,17 @@ window.controlCenterSearchModule.runControlCenter = function () {
 
     // Scroll to selected element if applicable
     const params = new URLSearchParams(window.location.search);
-    const matchHash = params.get('ccsh');
-    const searchTerm = decodeURIComponent(params.get('ccss'));
+    const matchHash = sessionStorage.getItem('ccsh');
+    const searchTerm = sessionStorage.getItem('ccss');
     if (matchHash !== null && searchTerm !== null) {
         window.controlCenterSearchModule.findMatchInCurrentPage(searchTerm, matchHash);
     }
 
-    this.ajax('getLinkData', {})
+    const searchInput = document.querySelector('#cc-search-searchInput');
+    searchInput.onkeyup = this.debounce(this.keyupHandler, 250);
+    searchInput.onsearch = this.keyupHandler;
+    
+    window.controlCenterSearchModule.ajax('getLinkData', {})
         .then(result => {
             if (result == '') {
                 console.log("Control Center Search: Initializing text...");
@@ -299,19 +302,18 @@ window.controlCenterSearchModule.runControlCenter = function () {
             } else {
                 this.link_data = JSON.parse(result);
                 this.initialized = true;
+                searchInput.value = searchTerm;
+                controlCenterSearchModule.keyupHandler();
             }
         })
         .catch(error => console.error(error));
-
-    document.querySelector('#cc-search-searchInput').onkeyup = this.debounce(this.keyupHandler, 250);
-    document.querySelector('#cc-search-searchInput').onsearch = this.keyupHandler;
 
     // Append link to top of menu
     document.querySelector('#control_center_menu').prepend(document.querySelector('#cc-search-container'));
     $('#cc-search-searchInput').width($("#pid-go-project").width());
 
     // Add a section divider before the Control Center Home section
-    $('div.cc_menu_header:contains("Control Center Home")').parent().prepend('<div class="cc_menu_divider"></div>')
+    $('div.cc_menu_header:contains("Control Center Home")').parent().prepend('<div class="cc_menu_divider"></div>');
 }
 
 $(document).ready(function () {
