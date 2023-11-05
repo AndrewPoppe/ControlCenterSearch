@@ -13,7 +13,7 @@ window.controlCenterSearchModule.getNodesThatContain = function (searchText, dom
     let searchString = searchText.replaceAll(" ", ".+?");
     let searchRE = new RegExp(searchString, 'gi');
 
-    return $(domNode).find('#control_center_window').find(":not(iframe, script, style)")
+    return $(domNode).find('#control_center_window').find(":not(iframe, script, style, option)")
         .contents()
         .map(function () {
             let text = this.textContent;
@@ -239,7 +239,7 @@ window.controlCenterSearchModule.findMatchInCurrentPage = async function (search
     const searchRE = new RegExp(searchString, 'gi');
 
 
-    const nodes = await Promise.all($(document.getElementById('control_center_window')).find(":not(iframe, script)")
+    const nodes = await Promise.all($(document.getElementById('control_center_window')).find(":not(iframe, script, style, option)")
         .contents()
         .toArray()
         .map(async function (el) {
