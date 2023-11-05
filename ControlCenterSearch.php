@@ -12,21 +12,21 @@ class ControlCenterSearch extends AbstractExternalModule
 {
     public function redcap_control_center()
     {
-        $this->initializeJavascriptModuleObject();
+        $this->framework->initializeJavascriptModuleObject();
         ?>
         <div class="cc_menu_section" id='cc-search-container'>
-            <div class="cc_menu_header">Control Center Search</div>
+            <div class="cc_menu_header"><?= $this->framework->tt('module_title')?></div>
             <div class="cc_menu_item" id="cc-search-item">
                 <i class="fas fa-search" style="color:#22224c;"></i>
-                <input id="cc-search-searchInput" type="text" class="x-form-text x-form-field fs11"
-                    placeholder="Search Control Center"></input>
+                <input id="cc-search-searchInput" type="search" class="x-form-text x-form-field fs11"
+                    placeholder="<?=$this->framework->tt('search_placeholder')?>"></input>
             </div>
         </div>
         <script type="text/javascript">
-            window.controlCenterSearchModule = <?= $this->getJavascriptModuleObjectName() ?>;
+            window.controlCenterSearchModule = <?= $this->framework->getJavascriptModuleObjectName() ?>;
         </script>
-        <script defer src="<?= $this->getUrl("searcher.js") ?>"></script>
-        <link rel="stylesheet" href="<?= $this->getUrl("searcher.css") ?>">
+        <script defer src="<?= $this->framework->getUrl("searcher.js") ?>"></script>
+        <link rel="stylesheet" href="<?= $this->framework->getUrl("searcher.css") ?>">
         <?php
     }
 

@@ -1,10 +1,27 @@
-.popover {
-    box-shadow: 0 0 0 99999px rgba(0, 0, 0, .8);
-    max-width: 33%;
+.ccs-popover {
+    box-shadow: 0 0 0 99999px rgba(0, 0, 0, .7);
+    width: clamp(33vw, 500px, 50vw);
+    max-width: 100%;
+}
+
+.ccs-popover .popover-body {
+    max-height: 75vh;
+    overflow-y: auto;
+    white-space:pre-wrap;
 }
 
 .marked.ccsearch {
     color: #900000;
     font-weight: bold;
     background-color: #FFFF00;
+}
+
+.ccs-card {
+    cursor: pointer;
+    padding: 0.5rem;
+}
+
+.ccs-card:hover {
+    background-color: #0022FF99 !important;
+    color: white;
 }

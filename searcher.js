@@ -13,17 +13,19 @@ window.controlCenterSearchModule.getNodesThatContain = function (searchText, dom
     let searchString = searchText.replaceAll(" ", ".+?");
     let searchRE = new RegExp(searchString, 'gi');
 
-    return $(domNode).find('#control_center_window').find(":not(iframe, script)")
+    return $(domNode).find('#control_center_window').find(":not(iframe, script, style, option)")
         .contents()
         .map(function () {
             let text = this.textContent;
             this.markedText = text.replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`);
             this.matched = text !== this.markedText;
+            this.hash = this.matched ? window.controlCenterSearchModule.hash(text) : -1;
             return this;
         })
         .filter(function () {
             return this.nodeType == 3 && this.matched;
-        });
+        })
+        .toArray();
 }
 
 /**
@@ -80,10 +82,10 @@ window.controlCenterSearchModule.initText = async function (domNode = null) {
             this.initialized = true;
             this.ajax('storeLinkData', { linkData: JSON.stringify(this.link_data) })
                 .then(result => {
-                    console.log("Stored link data.");
+                    console.log("Control Center Search: Stored link data.");
                 })
                 .catch(error => console.error(error));
-            console.log("Initialized text.");
+            console.log("Control Center Search: Initialized text.");
         });
 }
 
@@ -137,6 +139,16 @@ window.controlCenterSearchModule.debounce = function (cb, interval, immediate) {
     };
 }
 
+window.controlCenterSearchModule.hash = async function (str) {
+    if (crypto?.subtle?.digest === undefined) {
+        return -1;
+    }
+    const strUint8 = new TextEncoder().encode(str);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', strUint8);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); 
+}
+
 window.controlCenterSearchModule.display = function (searchResults) {
 
     // Reset panel to original status
@@ -151,30 +163,66 @@ window.controlCenterSearchModule.display = function (searchResults) {
     let linksToShow = searchResults.map(el => el.name);
 
     this.hideModules();
+    if (typeof(bootstrap) !== 'undefined') {
+        bootstrap.Tooltip.Default.allowList.div.push('onclick');
+    } else {
+        $.fn.popover.Constructor.Default.whiteList.div.push('onclick');
+    }
 
+    const popoverDelayMs = 200;
     $('div.cc_menu_item').each((i, el) => {
-        let isSearchItem = el.id === "cc-search-item";
-        if (!isSearchItem && !linksToShow.includes(trim(el.textContent))) {
+        const isSearchItem = el.id === "cc-search-item";
+        if (!isSearchItem && !linksToShow.includes(el.textContent.trim())) {
             $(el).hide();
         } else if (!isSearchItem) {
-            let thisResult = searchResults.filter(result => result.name === trim(el.textContent))[0];
+            const thisResult = searchResults.filter(result => result.name === el.textContent.trim())[0];
+            const popoverContainer = $('<div class="col">');
+            const popoverTitleIcon = $(el).find('i').get(0).outerHTML;
+            const popoverTitle = popoverTitleIcon+$(el).text();
 
-            let popoverContainer = $('<div class="highlight">');
-            let nResults = thisResult.searchResults.length;
-            thisResult.searchResults.each((j, res) => {
-                let newContainer = $('<div>');
-                let p = $('<p>').html(res.markedText);
+            Promise.all(thisResult.searchResults.map(async (res, j) => {
+                const hash = await res.hash;
+                const url = new URL(thisResult.link);
+                const newContainer = $(`<div class="card ccs-card bg-light mb-1" onclick="sessionStorage.setItem('ccsh', '${hash}');document.location.href='${url.href}'">`);
+                const p = $(`<p>`).html(res.markedText.trim());
+
                 newContainer.append(p);
-                if (j < (nResults - 1)) {
-                    newContainer.append($('<hr>'));
-                }
                 popoverContainer.append(newContainer);
-            });
-
-            $(el).popover({
-                trigger: "hover",
-                html: true,
-                content: popoverContainer.html()
+            })).then(() => {
+                $(el).unbind('mouseenter mouseleave');
+                $(el).attr('data-bs-placement','right');
+                $(el).popover({
+                    title: popoverTitle,
+                    trigger: "manual",
+                    placement: "right",
+                    html: true,
+                    content: popoverContainer.html(),
+                    animation: false,
+                    fallbackPlacements: ['right'],
+                    container: 'body',
+                    template: '<div class="popover ccs-popover" role="tooltip"><h3 class="popover-header"></h3><div class="popover-arrow"></div><div class="popover-body row row-cols-1 highlight m-1"></div></div>',
+                })
+                .on("mouseenter", function() {
+                    var _this = this;
+                    setTimeout(function() {
+                        if ($(_this).is(":hover")) {
+                            $(_this).popover("show");
+                            var popoverId = $(_this).attr('aria-describedby');
+                            $('#'+popoverId).on("mouseleave", function() {
+                                $(_this).popover('hide');
+                            });
+                        }
+                    }, popoverDelayMs);
+                })
+                .on("mouseleave", function() {
+                    var _this = this;
+                    var popoverId = $(_this).attr('aria-describedby');
+                    setTimeout(function() {
+                        if (!$("#"+popoverId+":hover").length) {
+                            $(_this).popover("hide");
+                        }
+                    }, popoverDelayMs);
+                });
             });
         }
     })
@@ -187,12 +235,49 @@ window.controlCenterSearchModule.display = function (searchResults) {
     });
 }
 
+window.controlCenterSearchModule.findMatchInCurrentPage = async function (searchTerm, matchHash) {
+    const searchString = searchTerm.replaceAll(" ", ".+?");
+    const searchRE = new RegExp(searchString, 'gi');
+
+
+    const nodes = await Promise.all($(document.getElementById('control_center_window')).find(":not(iframe, script, style, option)")
+        .contents()
+        .toArray()
+        .map(async function (el) {
+            if (el.nodeType !== 3) return el;
+            let text = el.textContent;
+            el.markedText = text.replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`);
+            el.matched = text !== el.markedText;
+            el.hash = el.matched ? (await window.controlCenterSearchModule.hash(text)) : -1;
+            el.hashMatched = await matchHash === el.hash;
+            return el;
+        }));
+    
+
+    for (let node of nodes) {
+        if (node.hashMatched) {
+            setTimeout(() => {
+                const element = node.parentElement;
+                $(element).html($(element).html().replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`));
+                const elY = element.getBoundingClientRect().y;
+                const scrollHeight = document.querySelector('body').scrollHeight;
+                const clientHeight = document.documentElement.clientHeight/2;
+                const scrollY = elY - min(clientHeight, scrollHeight, elY);
+                window.scrollTo({top:scrollY, behavior: 'smooth'});
+            }, 0);
+            return true;
+        }
+    }
+    return false;
+}
+
 window.controlCenterSearchModule.keyupHandler = function () {
     // remove popovers
     $('div.cc_menu_item').popover('dispose')
 
     const module = window.controlCenterSearchModule;
-    const searchTerm = document.querySelector("#cc-search-searchInput").value;
+    const searchTerm = document.querySelector("#cc-search-searchInput").value.trim();
+    sessionStorage.setItem('ccss', searchTerm);
     if (searchTerm === "" || !module.initialized) return module.display(null);
 
     module.display(module.search(searchTerm));
@@ -200,27 +285,38 @@ window.controlCenterSearchModule.keyupHandler = function () {
 
 window.controlCenterSearchModule.runControlCenter = function () {
 
-    this.ajax('getLinkData', {})
+    // Scroll to selected element if applicable
+    const params = new URLSearchParams(window.location.search);
+    const matchHash = sessionStorage.getItem('ccsh');
+    const searchTerm = sessionStorage.getItem('ccss');
+    if (matchHash !== null && searchTerm !== null) {
+        window.controlCenterSearchModule.findMatchInCurrentPage(searchTerm, matchHash);
+    }
+
+    const searchInput = document.querySelector('#cc-search-searchInput');
+    searchInput.onkeyup = this.debounce(this.keyupHandler, 250);
+    searchInput.onsearch = this.keyupHandler;
+    
+    window.controlCenterSearchModule.ajax('getLinkData', {})
         .then(result => {
             if (result == '') {
-                console.log("Initializing text...");
+                console.log("Control Center Search: Initializing text...");
                 this.initText();
             } else {
                 this.link_data = JSON.parse(result);
                 this.initialized = true;
+                searchInput.value = searchTerm;
+                controlCenterSearchModule.keyupHandler();
             }
         })
         .catch(error => console.error(error));
-
-    document.querySelector('#cc-search-searchInput').onkeyup = this.debounce(this.keyupHandler, 250);
 
     // Append link to top of menu
     document.querySelector('#control_center_menu').prepend(document.querySelector('#cc-search-container'));
     $('#cc-search-searchInput').width($("#pid-go-project").width());
 
     // Add a section divider before the Control Center Home section
-    $('div.cc_menu_header:contains("Control Center Home")').parent().prepend('<div class="cc_menu_divider"></div>')
-
+    $('div.cc_menu_header:contains("Control Center Home")').parent().prepend('<div class="cc_menu_divider"></div>');
 }
 
 $(document).ready(function () {

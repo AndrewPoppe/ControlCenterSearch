@@ -1,7 +1,9 @@
 {
     "name": "Control Center Search",
+    "tt_name": "module_title",
     "namespace": "YaleREDCap\\ControlCenterSearch",
     "description": "Adds a search box to more easily find information and settings in the Control Center",
+    "tt_description": "module_description",
     "authors": [
         {
             "name": "Andrew Poppe",
