@@ -185,7 +185,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
                 const url = new URL(thisResult.link);
                 url.searchParams.set('ccss', encodeURIComponent(thisResult.searchTerm));
                 url.searchParams.set('ccsh', hash);
-                const newContainer = $(`<div class="card ccs-card bg-light" onclick="document.location.href='${url.href}'">`);
+                const newContainer = $(`<div class="card ccs-card bg-light mb-1" onclick="document.location.href='${url.href}'">`);
                 const p = $(`<p>`).html(res.markedText.trim());
 
                 newContainer.append(p);
@@ -201,7 +201,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
                     content: popoverContainer.html(),
                     animation: false,
                     fallbackPlacements: ['right'],
-                    template: '<div class="popover" role="tooltip"><h3 class="popover-header"></h3><div class="popover-arrow"></div><div class="popover-body row row-cols-1 highlight my-1 mr-1 g-1"></div></div>',
+                    template: '<div class="popover" role="tooltip"><h3 class="popover-header"></h3><div class="popover-arrow"></div><div class="popover-body row row-cols-1 highlight m-1"></div></div>',
                 })
                 .on("mouseenter", function() {
                     var _this = this;
