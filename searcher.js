@@ -10,7 +10,7 @@
  * @return array of matching nodes
  */
 window.controlCenterSearchModule.getNodesThatContain = function (searchText, domNode) {
-    let searchString = searchText.replaceAll(" ", ".+?");
+    let searchString = searchText.trim().replaceAll(/\s+/g, '.*?');
     let searchRE = new RegExp(searchString, 'gi');
 
     return $(domNode).find('#control_center_window').find(":not(iframe, script, style, option)")
@@ -122,6 +122,38 @@ window.controlCenterSearchModule.showDividers = function () {
     $('#control_center_menu div.cc_menu_divider').show();
 }
 
+window.controlCenterSearchModule.safeParse = function (text) {
+    if (typeof text !== "string") {
+        return null;
+    }
+    try {
+        return JSON.parse(text);
+    } catch (error) {
+        return null;
+    }
+}
+
+window.controlCenterSearchModule.storeLinks = async function (links) {
+    if (links === null) return sessionStorage.removeItem('ccsl');
+    const linksToStore = [];
+    for (let linkIndex = 0; linkIndex < links.length; linkIndex++) {
+        const link = links[linkIndex];
+        const searchResults = [];
+        for (let resultIndex = 0; resultIndex < link.searchResults.length; resultIndex++) {
+            const result = link.searchResults[resultIndex];
+            if (typeof result.hash === 'undefined') {
+                result.hash = await window.controlCenterSearchModule.hash(result.text);
+            } else {
+                result.hash = await result.hash;
+            }
+            searchResults.push(result);
+        }
+        link.searchResults = searchResults;
+        linksToStore.push(link);
+    }
+    sessionStorage.setItem('ccsl', JSON.stringify(linksToStore));
+}
+
 window.controlCenterSearchModule.debounce = function (cb, interval, immediate) {
     var timeout;
     return function () {
@@ -150,6 +182,9 @@ window.controlCenterSearchModule.hash = async function (str) {
 }
 
 window.controlCenterSearchModule.display = function (searchResults) {
+
+    // Store links in session storage
+    window.controlCenterSearchModule.storeLinks(searchResults)
 
     // Reset panel to original status
     $('div.cc_menu_item').show();
@@ -236,9 +271,8 @@ window.controlCenterSearchModule.display = function (searchResults) {
 }
 
 window.controlCenterSearchModule.findMatchInCurrentPage = async function (searchTerm, matchHash) {
-    const searchString = searchTerm.replaceAll(" ", ".+?");
+    const searchString = searchTerm.trim().replaceAll(/\s+/g, '.*?');
     const searchRE = new RegExp(searchString, 'gi');
-
 
     const nodes = await Promise.all($(document.getElementById('control_center_window')).find(":not(iframe, script, style, option)")
         .contents()
@@ -246,7 +280,7 @@ window.controlCenterSearchModule.findMatchInCurrentPage = async function (search
         .map(async function (el) {
             if (el.nodeType !== 3) return el;
             let text = el.textContent;
-            el.markedText = text.replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`);
+            el.markedText = text.replaceAll(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`);
             el.matched = text !== el.markedText;
             el.hash = el.matched ? (await window.controlCenterSearchModule.hash(text)) : -1;
             el.hashMatched = await matchHash === el.hash;
@@ -258,7 +292,7 @@ window.controlCenterSearchModule.findMatchInCurrentPage = async function (search
         if (node.hashMatched) {
             setTimeout(() => {
                 const element = node.parentElement;
-                $(element).html($(element).html().replace(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`));
+                $(element).html($(element).html().replaceAll(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`));
                 const elY = element.getBoundingClientRect().y;
                 const scrollHeight = document.querySelector('body').scrollHeight;
                 const clientHeight = document.documentElement.clientHeight/2;
@@ -287,13 +321,20 @@ window.controlCenterSearchModule.runControlCenter = function () {
 
     // Scroll to selected element if applicable
     const params = new URLSearchParams(window.location.search);
+    const searchInput = document.querySelector('#cc-search-searchInput');
     const matchHash = sessionStorage.getItem('ccsh');
     const searchTerm = sessionStorage.getItem('ccss');
+    const links = window.controlCenterSearchModule.safeParse(sessionStorage.getItem('ccsl'));
+    let filtered = false;
+    if (links !== null) {
+        window.controlCenterSearchModule.display(links);
+        searchInput.value = searchTerm ?? '';
+        filtered = true;
+    }
     if (matchHash !== null && searchTerm !== null) {
         window.controlCenterSearchModule.findMatchInCurrentPage(searchTerm, matchHash);
     }
 
-    const searchInput = document.querySelector('#cc-search-searchInput');
     searchInput.onkeyup = this.debounce(this.keyupHandler, 250);
     searchInput.onsearch = this.keyupHandler;
     
@@ -305,8 +346,7 @@ window.controlCenterSearchModule.runControlCenter = function () {
             } else {
                 this.link_data = JSON.parse(result);
                 this.initialized = true;
-                searchInput.value = searchTerm;
-                controlCenterSearchModule.keyupHandler();
+                !filtered && controlCenterSearchModule.keyupHandler();
             }
         })
         .catch(error => console.error(error));
