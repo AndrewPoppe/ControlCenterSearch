@@ -270,6 +270,37 @@ window.controlCenterSearchModule.display = function (searchResults) {
     });
 }
 
+window.controlCenterSearchModule.tryToOpenModals = function (element) {
+    const dialog = $(element).closest('.simpleDialog');
+    if (dialog.length > 0) {
+        window.controlCenterSearchModule.scrollTo(dialog.siblings(':visible').get(0).getBoundingClientRect().y);
+        let position = null
+        const checkIfScrollIsStatic = setInterval(() => {
+            if (position === window.scrollY) {
+                clearInterval(checkIfScrollIsStatic);
+                simpleDialog(null, null, dialog.attr('id'), 1000);
+            }
+            position = window.scrollY;
+        }, 50);
+        return;
+    }
+
+    const hidden = $(element).closest('div:hidden');
+    if (hidden.length > 0) {
+        window.controlCenterSearchModule.scrollTo(hidden.siblings(':visible').get(0).getBoundingClientRect().y);
+        let position = null
+        const checkIfScrollIsStatic = setInterval(() => {
+            if (position === window.scrollY) {
+                clearInterval(checkIfScrollIsStatic);
+                simpleDialog(null, null, hidden.attr('id'), 1000);
+            }
+            position = window.scrollY;
+        }, 50);
+        return;
+    }
+    return window.controlCenterSearchModule.scrollTo(element.getBoundingClientRect().y);
+}
+
 window.controlCenterSearchModule.findMatchInCurrentPage = async function (searchTerm, matchHash) {
     const searchString = searchTerm.trim().replaceAll(/\s+/g, '.*?');
     const searchRE = new RegExp(searchString, 'gi');
@@ -293,16 +324,27 @@ window.controlCenterSearchModule.findMatchInCurrentPage = async function (search
             setTimeout(() => {
                 const element = node.parentElement;
                 $(element).html($(element).html().replaceAll(searchRE, (match) => `<span class="marked ccsearch">${match}</span>`));
-                const elY = element.getBoundingClientRect().y;
-                const scrollHeight = document.querySelector('body').scrollHeight;
-                const clientHeight = document.documentElement.clientHeight/2;
-                const scrollY = elY - min(clientHeight, scrollHeight, elY);
-                window.scrollTo({top:scrollY, behavior: 'smooth'});
+                let rect = element.getBoundingClientRect();
+
+                // Element is hidden, might be part of a modal / dialog
+                if (rect.height === 0) {
+                    window.controlCenterSearchModule.tryToOpenModals(element);
+                } else {
+                    const elY = rect.y;
+                    window.controlCenterSearchModule.scrollTo(elY);
+                }
             }, 0);
             return true;
         }
     }
     return false;
+}
+
+window.controlCenterSearchModule.scrollTo = function (elY) {
+    const scrollHeight = document.querySelector('body').scrollHeight;
+    const clientHeight = document.documentElement.clientHeight/2;
+    const scrollY = elY - min(clientHeight, scrollHeight, elY);
+    window.scrollTo({top:scrollY, behavior: 'smooth'});
 }
 
 window.controlCenterSearchModule.keyupHandler = function () {
@@ -331,8 +373,11 @@ window.controlCenterSearchModule.runControlCenter = function () {
         searchInput.value = searchTerm ?? '';
         filtered = true;
     }
-    if (matchHash !== null && searchTerm !== null) {
+    if (!matchHash && !searchTerm) {
         window.controlCenterSearchModule.findMatchInCurrentPage(searchTerm, matchHash);
+    } else {
+        sessionStorage.removeItem('ccsh');
+        sessionStorage.removeItem('ccss');
     }
 
     searchInput.onkeyup = this.debounce(this.keyupHandler, 250);
