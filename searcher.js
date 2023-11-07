@@ -235,7 +235,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
                     animation: false,
                     fallbackPlacements: ['right'],
                     container: 'body',
-                    template: '<div class="popover ccs-popover" role="tooltip"><h3 class="popover-header"></h3><div class="popover-arrow"></div><div class="popover-body row row-cols-1 highlight m-1"></div></div>',
+                    template: '<div class="popover ccs-popover" role="tooltip"><h3 class="popover-header"></h3><div class="arrow popover-arrow"></div><div class="popover-body row row-cols-1 highlight m-1"></div></div>',
                 })
                 .on("mouseenter", function() {
                     var _this = this;
