@@ -298,6 +298,21 @@ window.controlCenterSearchModule.tryToOpenModals = function (element) {
         }, 50);
         return;
     }
+
+    const hidden2 = $(element).css('display') === 'none' ? $(element) : null;
+    if (hidden2 !== null) {
+        window.controlCenterSearchModule.scrollTo(hidden2.siblings(':visible').get(0).getBoundingClientRect().y);
+        let position = null
+        const checkIfScrollIsStatic = setInterval(() => {
+            if (position === window.scrollY) {
+                clearInterval(checkIfScrollIsStatic);
+                simpleDialog(null, null, hidden2.attr('id'), 500);
+            }
+            position = window.scrollY;
+        }, 50);
+        return;
+    }
+
     return window.controlCenterSearchModule.scrollTo(element.getBoundingClientRect().y);
 }
 
@@ -373,7 +388,7 @@ window.controlCenterSearchModule.runControlCenter = function () {
         searchInput.value = searchTerm ?? '';
         filtered = true;
     }
-    if (!matchHash && !searchTerm) {
+    if (matchHash && searchTerm) {
         window.controlCenterSearchModule.findMatchInCurrentPage(searchTerm, matchHash);
     } else {
         sessionStorage.removeItem('ccsh');
