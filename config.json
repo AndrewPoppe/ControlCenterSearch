@@ -8,10 +8,10 @@
         {
             "name": "Andrew Poppe",
             "email": "andrew.poppe@yale.edu",
-            "institution": "Yale Center for Clinical Investigation"
+            "institution": "Yale University"
         }
     ],
-    "framework-version": 12,
+    "framework-version": 16,
     "compatibility": {
         "php-version-min": "8.0.0",
         "php-version-max": "",
