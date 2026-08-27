@@ -203,7 +203,7 @@ window.controlCenterSearchModule.hash = async function (str) {
     const strUint8 = new TextEncoder().encode(str);
     const hashBuffer = await crypto.subtle.digest('SHA-256', strUint8);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); 
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 window.controlCenterSearchModule.display = function (searchResults) {
@@ -223,7 +223,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
     let linksToShow = searchResults.map(el => el.name);
 
     this.hideModules();
-    if (typeof(bootstrap) !== 'undefined') {
+    if (typeof (bootstrap) !== 'undefined') {
         bootstrap.Tooltip.Default.allowList.div.push('onclick');
     } else {
         $.fn.popover.Constructor.Default.whiteList.div.push('onclick');
@@ -238,7 +238,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
             const thisResult = searchResults.filter(result => result.name === el.textContent.trim())[0];
             const popoverContainer = $('<div class="col">');
             const popoverTitleIcon = $(el).find('i').get(0).outerHTML;
-            const popoverTitle = popoverTitleIcon+$(el).text();
+            const popoverTitle = popoverTitleIcon + $(el).text();
 
             Promise.all(thisResult.searchResults.map(async (res, j) => {
                 const hash = await res.hash;
@@ -250,7 +250,7 @@ window.controlCenterSearchModule.display = function (searchResults) {
                 popoverContainer.append(newContainer);
             })).then(() => {
                 $(el).unbind('mouseenter mouseleave');
-                $(el).attr('data-bs-placement','right');
+                $(el).attr('data-bs-placement', 'right');
                 $(el).popover({
                     title: popoverTitle,
                     trigger: "manual",
@@ -262,27 +262,27 @@ window.controlCenterSearchModule.display = function (searchResults) {
                     container: 'body',
                     template: '<div class="popover ccs-popover" role="tooltip"><h3 class="popover-header"></h3><div class="arrow popover-arrow"></div><div class="popover-body row row-cols-1 highlight m-1"></div></div>',
                 })
-                .on("mouseenter", function() {
-                    var _this = this;
-                    setTimeout(function() {
-                        if ($(_this).is(":hover")) {
-                            $(_this).popover("show");
-                            var popoverId = $(_this).attr('aria-describedby');
-                            $('#'+popoverId).on("mouseleave", function() {
-                                $(_this).popover('hide');
-                            });
-                        }
-                    }, popoverDelayMs);
-                })
-                .on("mouseleave", function() {
-                    var _this = this;
-                    var popoverId = $(_this).attr('aria-describedby');
-                    setTimeout(function() {
-                        if (!$("#"+popoverId+":hover").length) {
-                            $(_this).popover("hide");
-                        }
-                    }, popoverDelayMs);
-                });
+                    .on("mouseenter", function () {
+                        var _this = this;
+                        setTimeout(function () {
+                            if ($(_this).is(":hover")) {
+                                $(_this).popover("show");
+                                var popoverId = $(_this).attr('aria-describedby');
+                                $('#' + popoverId).on("mouseleave", function () {
+                                    $(_this).popover('hide');
+                                });
+                            }
+                        }, popoverDelayMs);
+                    })
+                    .on("mouseleave", function () {
+                        var _this = this;
+                        var popoverId = $(_this).attr('aria-describedby');
+                        setTimeout(function () {
+                            if (!$("#" + popoverId + ":hover").length) {
+                                $(_this).popover("hide");
+                            }
+                        }, popoverDelayMs);
+                    });
             });
         }
     })
@@ -357,7 +357,7 @@ window.controlCenterSearchModule.findMatchInCurrentPage = async function (search
             el.hashMatched = await matchHash === el.hash;
             return el;
         }));
-    
+
 
     for (let node of nodes) {
         if (node.hashMatched) {
@@ -382,9 +382,9 @@ window.controlCenterSearchModule.findMatchInCurrentPage = async function (search
 
 window.controlCenterSearchModule.scrollTo = function (elY) {
     const scrollHeight = document.querySelector('body').scrollHeight;
-    const clientHeight = document.documentElement.clientHeight/2;
-    const scrollY = elY - min(clientHeight, scrollHeight, elY);
-    window.scrollTo({top:scrollY, behavior: 'smooth'});
+    const clientHeight = document.documentElement.clientHeight / 2;
+    const scrollY = elY - Math.min(clientHeight, scrollHeight, elY);
+    window.scrollTo({ top: scrollY, behavior: 'smooth' });
 }
 
 window.controlCenterSearchModule.keyupHandler = function () {
@@ -422,7 +422,7 @@ window.controlCenterSearchModule.runControlCenter = function () {
 
     searchInput.onkeyup = this.debounce(this.keyupHandler, 250);
     searchInput.onsearch = this.keyupHandler;
-    
+
     window.controlCenterSearchModule.ajax('getLinkData', {})
         .then(result => {
             if (result == '') {
