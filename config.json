@@ -13,13 +13,23 @@
     ],
     "framework-version": 12,
     "compatibility": {
-        "php-version-min": "7.4.0",
+        "php-version-min": "8.0.0",
         "php-version-max": "",
-        "redcap-version-min": "13.1.27",
+        "redcap-version-min": "14.6.4",
         "redcap-version-max": ""
     },
     "auth-ajax-actions": [
         "getLinkData",
         "storeLinkData"
+    ],
+    "system-settings": [
+        {
+            "key": "excluded-link-text",
+            "name": "Link to exclude from search: a link will be excluded if its name contains this text. Surround the text in double quotes to require an exact match instead.",
+            "tt_name": "config_excluded_link_text",
+            "type": "text",
+            "repeatable": true,
+            "required": false
+        }
     ]
 }

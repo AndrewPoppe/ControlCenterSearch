@@ -24,6 +24,7 @@ class ControlCenterSearch extends AbstractExternalModule
         </div>
         <script type="text/javascript">
             window.controlCenterSearchModule = <?= $this->framework->getJavascriptModuleObjectName() ?>;
+            window.controlCenterSearchModule.excludedLinkText = <?= json_encode($this->getExcludedLinkText(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
         </script>
         <script defer src="<?= $this->framework->getUrl("searcher.js") ?>"></script>
         <link rel="stylesheet" href="<?= $this->framework->getUrl("searcher.css") ?>">
@@ -50,5 +51,13 @@ class ControlCenterSearch extends AbstractExternalModule
         } catch ( \Throwable $e ) {
             $this->framework->log('Error in redcap_module_ajax', [ 'error' => $e->getMessage() ]);
         }
+    }
+
+    private function getExcludedLinkText() : array
+    {
+        $excluded = (array) $this->framework->getSystemSetting('excluded-link-text');
+        return array_values(array_filter($excluded, function ($text) {
+            return is_string($text) && trim($text) !== '';
+        }));
     }
 }

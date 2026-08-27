@@ -38,6 +38,30 @@ window.controlCenterSearchModule.getNodesThatContain = function (searchText, dom
  *          text: the html as a string
  *      }
  */
+/**
+ * Checks whether a link should be excluded from searching based on the
+ * module's system configuration
+ *
+ * Each configured exclusion either must be contained in the link's name
+ * or, if surrounded by double quotes, must match the link's name exactly
+ *
+ * @param string linkName text content of the link
+ *
+ * @return boolean true if the link should be excluded
+ */
+window.controlCenterSearchModule.isLinkExcluded = function (linkName) {
+    const exclusions = this.excludedLinkText ?? [];
+    const name = (linkName ?? '').trim();
+    return exclusions.some(exclusion => {
+        const term = ('' + exclusion).trim();
+        if (term === '') return false;
+        if (term.length > 1 && term.startsWith('"') && term.endsWith('"')) {
+            return name === term.slice(1, -1);
+        }
+        return name.toLowerCase().includes(term.toLowerCase());
+    });
+}
+
 window.controlCenterSearchModule.getText = function (domNode = null) {
     const origin = new URL(window.location).origin;
     let aArr;
@@ -51,7 +75,8 @@ window.controlCenterSearchModule.getText = function (domNode = null) {
             a.textContent !== "REDCap Home Page" &&
             a.textContent !== "My Projects" &&
             a.textContent !== "API Documentation" &&
-            a.textContent !== "Configuration Check"
+            a.textContent !== "Configuration Check" &&
+            !window.controlCenterSearchModule.isLinkExcluded(a.textContent)
     });
     const results = links.map(async (a) => {
         let text = await fetch(a.href).then(result => result.text());
@@ -404,7 +429,7 @@ window.controlCenterSearchModule.runControlCenter = function () {
                 console.log("Control Center Search: Initializing text...");
                 this.initText();
             } else {
-                this.link_data = JSON.parse(result);
+                this.link_data = JSON.parse(result).filter(ld => !this.isLinkExcluded(ld.name));
                 this.initialized = true;
                 !filtered && controlCenterSearchModule.keyupHandler();
             }
